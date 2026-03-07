@@ -1,16 +1,19 @@
-# Buckeye Bus Monitor
+# Buckeye Bus Demand Monitor
 
-Frontend prototype for monitoring CABS bus stop activity with:
-- Live camera stream + basic motion-based crowd estimate
-- Route stop lookup from `https://content.osu.edu/v2/bus/routes/<LINE_CODE>`
-- Summary cards for stop count, first stop, and update time
+Frontend prototype for monitoring stop demand with:
+- Live camera stream for activity estimation
+- Demand snapshots saved once per minute while camera is active
+- Per-route demand forecasting (+15m and +30m)
+- Leaflet map with route visibility toggles and route reload
+- Map rendering from API responses with `data.stops` and `data.patterns` (encoded polylines)
+- Add custom route codes directly from the UI for quick troubleshooting
 
 ## Open in VSCode
 Open folder:
 `/Users/aprilcielica/Desktop/Software I/workspace/buckeye-bus-monitor`
 
 ## Run locally
-Use any static server (recommended because some browsers block camera/fetch on `file://`).
+Use any static server.
 
 Example:
 ```bash
@@ -21,5 +24,6 @@ Then open:
 `http://localhost:8000`
 
 ## Notes
-- Camera needs browser permission.
-- If route fetch fails, it is usually endpoint availability or CORS from the browser.
+- Camera permission is required for activity tracking.
+- Demand history is stored in browser localStorage under `buckeye-bus-demand-history-v1`.
+- If map loading partially fails, it is usually CORS/network permissions on specific route calls.
