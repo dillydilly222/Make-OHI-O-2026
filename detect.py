@@ -8,7 +8,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-model = YOLO("yolov8l.pt")
+model = YOLO("yolov8x.pt")
 model.to("mps")
 stream_url = "http://192.168.4.1:81/stream"
 
