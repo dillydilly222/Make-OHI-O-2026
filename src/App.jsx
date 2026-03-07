@@ -15,7 +15,7 @@ export default function App() {
       <header className="hero">
         <p className="eyebrow">Ohio State CABS Toolkit</p>
         <h1>Buckeye Bus Demand Monitor</h1>
-        <p className="lede">Track stop activity with camera sampling each minute and visualize active CABS routes on a map.</p>
+        <p className="lede">Live people count from the ESP32 camera, demand forecasting, and active CABS routes on a map.</p>
       </header>
 
       <main className="layout">
@@ -33,7 +33,7 @@ export default function App() {
       </main>
 
       <footer>
-        <p>Endpoint reference: <code>https://content.osu.edu/v2/bus/routes/&lt;CODE&gt;</code></p>
+        <p>ESP camera server: <code>main.py</code> &nbsp;&middot;&nbsp; Route API: <code>https://content.osu.edu/v2/bus/routes/&lt;CODE&gt;</code></p>
       </footer>
     </>
   );

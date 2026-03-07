@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import { useCamera } from '../hooks/useCamera';
+import { useEffect, useRef } from 'react';
 import { useYoloFeed } from '../hooks/useYoloFeed';
 import { SAMPLE_INTERVAL_MS } from '../constants';
 import { demandLevel, formatForecast, computeTrend } from '../utils';
@@ -22,25 +21,18 @@ function boardingTip(level) {
 }
 
 export default function CameraPanel({ selectedRoute, history, addSample }) {
-  const { videoRef, canvasRef, mediaStream, activityScore, cameraStatus, startCamera, stopCamera } = useCamera();
   const peopleCount = useYoloFeed();
-  const yoloActive = peopleCount !== null;
+  const hasData = peopleCount !== null;
 
-  const [activeSource, setActiveSource] = useState('camera');
+  const activityScore = hasData ? peopleToScore(peopleCount) : 0;
+  const level = demandLevel(activityScore);
 
-  const effectiveScore = activeSource === 'yolo' && yoloActive
-    ? peopleToScore(peopleCount)
-    : activityScore;
-  const level = demandLevel(effectiveScore);
-  const hasData = mediaStream !== null || yoloActive;
+  const scoreRef = useRef(activityScore);
+  useEffect(() => { scoreRef.current = activityScore; }, [activityScore]);
 
-  // Keep ref to latest score so the sampling timer always reads fresh value
-  const scoreRef = useRef(effectiveScore);
-  useEffect(() => { scoreRef.current = effectiveScore; }, [effectiveScore]);
-
-  // Periodic demand sampling while camera is active
+  // Sample demand once per minute while ESP camera is streaming
   useEffect(() => {
-    if (!mediaStream) return;
+    if (!hasData) return;
     const initId = setTimeout(() => {
       addSample(selectedRoute, scoreRef.current, demandLevel(scoreRef.current));
     }, 3000);
@@ -48,7 +40,7 @@ export default function CameraPanel({ selectedRoute, history, addSample }) {
       addSample(selectedRoute, scoreRef.current, demandLevel(scoreRef.current));
     }, SAMPLE_INTERVAL_MS);
     return () => { clearTimeout(initId); clearInterval(id); };
-  }, [mediaStream, selectedRoute, addSample]);
+  }, [hasData, selectedRoute, addSample]);
 
   const routeHistory = history.filter(e => e.routeCode === selectedRoute);
   const trend = computeTrend(routeHistory);
@@ -56,43 +48,22 @@ export default function CameraPanel({ selectedRoute, history, addSample }) {
 
   return (
     <section className="panel camera-panel">
-      <div className="panel-title-wrap">
-        <h2>Stop Camera</h2>
-        <button className="btn" onClick={mediaStream ? stopCamera : startCamera}>
-          {mediaStream ? 'Stop Camera' : 'Start Camera'}
-        </button>
-      </div>
+      <h2>Stop Monitor</h2>
 
-      <div className="source-tabs">
-        <button
-          className={`tab-btn ${activeSource === 'camera' ? 'active' : ''}`}
-          onClick={() => setActiveSource('camera')}
-        >
-          Pixel-Diff
-        </button>
-        <button
-          className={`tab-btn ${activeSource === 'yolo' ? 'active' : ''}`}
-          onClick={() => setActiveSource('yolo')}
-        >
-          YOLO{yoloActive ? ' \u2713' : ' (offline)'}
-        </button>
-      </div>
-
-      <div className="video-shell">
-        <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
-        <canvas ref={canvasRef} className="analysis-canvas" width={640} height={360} tabIndex={-1} />
-        <div className="camera-status">{cameraStatus}</div>
-        {yoloActive && (
-          <div className="yolo-badge">
-            YOLO &middot; {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
-          </div>
+      <div className="people-counter">
+        <p className="people-count-value">{hasData ? peopleCount : '--'}</p>
+        <p className="people-count-label">People at Stop</p>
+        {!hasData && (
+          <p className="yolo-offline">
+            ESP camera offline &mdash; run <code>main.py</code> to connect
+          </p>
         )}
       </div>
 
       <div className="metrics-row">
         <article className="metric">
-          <p className="metric-label">Crowd Activity</p>
-          <p className="metric-value">{hasData ? `${effectiveScore}/100` : '--'}</p>
+          <p className="metric-label">Activity Score</p>
+          <p className="metric-value">{hasData ? `${activityScore}/100` : '--'}</p>
         </article>
         <article className="metric">
           <p className="metric-label">Estimated Occupancy</p>
@@ -123,7 +94,7 @@ export default function CameraPanel({ selectedRoute, history, addSample }) {
         </article>
       </div>
 
-      <p className="sampling-note">Demand snapshots are stored once per minute while camera is active.</p>
+      <p className="sampling-note">Demand snapshots stored once per minute while ESP camera is active.</p>
       <Sparkline entries={routeHistory} />
 
       <div className="table-wrap demand-table">
