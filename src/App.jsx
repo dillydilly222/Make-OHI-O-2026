@@ -5,9 +5,9 @@ import CameraPanel from './components/CameraPanel';
 import MapPanel from './components/MapPanel';
 
 export default function App() {
-  const [routes, setRoutes] = useState(INITIAL_ROUTES);
-  const [selectedRoute, setSelectedRoute] = useState('BE');
-  const { history, addSample } = useDemandHistory();
+  const [routes] = useState(INITIAL_ROUTES);
+  const [selectedRoute] = useState('BE');
+  const { addSample } = useDemandHistory();
 
   return (
     <>
@@ -21,19 +21,15 @@ export default function App() {
       <main className="layout">
         <CameraPanel
           selectedRoute={selectedRoute}
-          history={history}
           addSample={addSample}
         />
         <MapPanel
           routes={routes}
-          setRoutes={setRoutes}
-          selectedRoute={selectedRoute}
-          setSelectedRoute={setSelectedRoute}
         />
       </main>
 
       <footer>
-        <p>ESP camera server: <code>main.py</code> &nbsp;&middot;&nbsp; Route API: <code>https://content.osu.edu/v2/bus/routes/&lt;CODE&gt;</code></p>
+        <p>ESP camera server: <code>detect.py</code> &nbsp;&middot;&nbsp; LLM: Ollama <code>llama3.1</code> &nbsp;&middot;&nbsp; Route API: <code>https://content.osu.edu/v2/bus/routes/&lt;CODE&gt;</code></p>
       </footer>
     </>
   );

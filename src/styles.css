@@ -75,11 +75,11 @@ h1 {
 }
 
 .layout {
-  max-width: 1100px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 0.75rem 1rem 2rem;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
@@ -149,6 +149,13 @@ h1 {
 
 .demand-row {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metrics-row--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .metric {
@@ -323,13 +330,7 @@ select,
 .vehicle-icon-wrap {
   background: transparent;
   border: none;
-}
-
-.vehicle-icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  overflow: visible;
 }
 
 /* ── Footer ───────────────────────────────────────────────────── */
@@ -346,12 +347,9 @@ footer {
 .is-warn  { color: var(--warn); }
 .is-bad   { color: var(--bad); }
 
-@media (max-width: 920px) {
-  .layout,
-  .metrics-row,
-  .demand-row,
-  .map-controls,
-  .route-add-row {
+@media (max-width: 600px) {
+  .metrics-row--two {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
 }

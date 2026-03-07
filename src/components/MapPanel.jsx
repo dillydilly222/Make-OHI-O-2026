@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
-import { ROUTE_PALETTE, VEHICLE_REFRESH_MS } from '../constants';
+import { VEHICLE_REFRESH_MS } from '../constants';
 import { fetchRoute, fetchVehicles } from '../utils';
 
 function addVehicleMarker(v, route, lg) {
@@ -10,9 +10,20 @@ function addVehicleMarker(v, route, lg) {
   const heading = v.heading ?? 0;
   const icon = L.divIcon({
     className: 'vehicle-icon-wrap',
-    html: `<div class="vehicle-icon" style="background:${route.color};transform:rotate(${heading}deg)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="24" viewBox="0 0 18 24"
+        style="transform:rotate(${heading}deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45))">
+      <!-- front point -->
+      <polygon points="9,0 17,7 1,7" fill="${route.color}" stroke="white" stroke-width="1.2"/>
+      <!-- body -->
+      <rect x="1" y="6" width="16" height="16" rx="2" fill="${route.color}" stroke="white" stroke-width="1.2"/>
+      <!-- windows -->
+      <rect x="3" y="9"  width="5" height="4" rx="1" fill="rgba(255,255,255,0.75)"/>
+      <rect x="10" y="9" width="5" height="4" rx="1" fill="rgba(255,255,255,0.75)"/>
+      <rect x="3" y="15" width="5" height="4" rx="1" fill="rgba(255,255,255,0.75)"/>
+      <rect x="10" y="15" width="5" height="4" rx="1" fill="rgba(255,255,255,0.75)"/>
+    </svg>`,
+    iconSize: [18, 24],
+    iconAnchor: [9, 12],
   });
   L.marker([lat, lng], { icon })
     .bindPopup(
@@ -24,7 +35,7 @@ function addVehicleMarker(v, route, lg) {
     .addTo(lg);
 }
 
-export default function MapPanel({ routes, setRoutes, selectedRoute, setSelectedRoute }) {
+export default function MapPanel({ routes }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const routeCacheRef = useRef(new Map());
@@ -37,11 +48,7 @@ export default function MapPanel({ routes, setRoutes, selectedRoute, setSelected
     routes.forEach(r => m.set(r.code, true));
     return m;
   });
-  const [mapStatus, setMapStatus] = useState('Map idle.');
-  const [mapStatusClass, setMapStatusClass] = useState('sampling-note');
   const [mapReady, setMapReady] = useState(false);
-  const [customCode, setCustomCode] = useState('');
-  const [customName, setCustomName] = useState('');
 
   // Initialize Leaflet map once
   useEffect(() => {
@@ -98,8 +105,6 @@ export default function MapPanel({ routes, setRoutes, selectedRoute, setSelected
     });
 
     if (bounds.length > 0) map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 });
-    setMapStatus(`Showing ${visibleCount} route(s).`);
-    setMapStatusClass('sampling-note');
   }, [routes, routeVisibility]);
 
   const refreshVehicles = useCallback(async () => {
@@ -120,30 +125,17 @@ export default function MapPanel({ routes, setRoutes, selectedRoute, setSelected
   }, [routes, routeVisibility]);
 
   const reloadMapData = useCallback(async () => {
-    setMapStatus('Loading map data...');
-    setMapStatusClass('sampling-note');
-    const results = await Promise.all(
+    await Promise.all(
       routes.map(async route => {
         try {
           routeCacheRef.current.set(route.code, await fetchRoute(route.code));
-          return { ok: true };
-        } catch {
-          return { ok: false };
-        }
+        } catch { /* silently skip failed routes */ }
       })
     );
     drawMap();
     await refreshVehicles();
     clearInterval(vehicleTimerRef.current);
     vehicleTimerRef.current = setInterval(refreshVehicles, VEHICLE_REFRESH_MS);
-    const ok = results.filter(r => r.ok).length;
-    if (ok === routes.length) {
-      setMapStatus(`Loaded ${ok}/${routes.length} routes.`);
-      setMapStatusClass('sampling-note is-good');
-    } else {
-      setMapStatus(`Loaded ${ok}/${routes.length} routes (some failed, likely CORS/network).`);
-      setMapStatusClass('sampling-note is-warn');
-    }
   }, [routes, drawMap, refreshVehicles]);
 
   // Initial data load after map is ready
@@ -161,58 +153,8 @@ export default function MapPanel({ routes, setRoutes, selectedRoute, setSelected
   // Cleanup vehicle timer on unmount
   useEffect(() => () => clearInterval(vehicleTimerRef.current), []);
 
-  const addRoute = () => {
-    const code = customCode.trim().toUpperCase();
-    const name = customName.trim();
-    if (!code) { setMapStatus('Enter a route code to add.'); setMapStatusClass('sampling-note is-warn'); return; }
-    if (routes.some(r => r.code === code)) { setMapStatus(`${code} already exists.`); setMapStatusClass('sampling-note is-warn'); return; }
-    const color = ROUTE_PALETTE[routes.length % ROUTE_PALETTE.length];
-    setRoutes(prev => [...prev, { code, name: name || `Custom Route ${code}`, color }]);
-    setSelectedRoute(code);
-    setCustomCode('');
-    setCustomName('');
-    setMapStatus(`Added route ${code}. Reload map data to fetch it.`);
-    setMapStatusClass('sampling-note is-good');
-  };
-
   return (
     <section className="panel map-panel">
-      <h2>Route Context + Map</h2>
-      <p className="lede">Set route context for demand tracking and show available routes on the map.</p>
-
-      <div className="controls-simple">
-        <label htmlFor="route-select">Route Context</label>
-        <select id="route-select" value={selectedRoute} onChange={e => setSelectedRoute(e.target.value)}>
-          {routes.map(r => (
-            <option key={r.code} value={r.code}>{r.name} ({r.code})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="controls-simple">
-        <label htmlFor="custom-route-code">Add Route Code</label>
-        <div className="route-add-row">
-          <input
-            id="custom-route-code"
-            value={customCode}
-            onChange={e => setCustomCode(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addRoute()}
-            type="text" placeholder="Code (e.g., WMC)" maxLength={10}
-          />
-          <input
-            value={customName}
-            onChange={e => setCustomName(e.target.value)}
-            type="text" placeholder="Name (optional)" maxLength={40}
-          />
-          <button className="btn" onClick={addRoute}>Add</button>
-        </div>
-      </div>
-
-      <div className="map-controls">
-        <button className="btn" onClick={reloadMapData}>Reload Map Data</button>
-        <p className={mapStatusClass}>{mapStatus}</p>
-      </div>
-
       <div className="map-toolbar">
         <p className="metric-label">Map Visibility</p>
         <div className="route-toggles">
