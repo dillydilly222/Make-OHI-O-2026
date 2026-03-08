@@ -10,26 +10,28 @@ CORS(app)
 
 model = YOLO("yolov8x.pt")
 model.to("mps")
-stream_url = "http://192.168.4.1:81/stream"
+stream_url = "http://192.168.137.90:81/stream"
 
 people_count = 0
 lock = threading.Lock()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.1"
+OLLAMA_MODEL = "llama3.1:8b"
 
 
 def detection_loop():
     global people_count
-    cap = cv2.VideoCapture(stream_url)
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            continue
-        results = model(frame)
-        count = sum(1 for r in results for box in r.boxes if int(box.cls) == 0)
-        with lock:
-            people_count = count
+        cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                cap.release()
+                break
+            results = model(frame)
+            count = sum(1 for r in results for box in r.boxes if int(box.cls) == 0)
+            with lock:
+                people_count = count
 
 
 @app.route("/people-count")
@@ -43,21 +45,24 @@ def get_people_count():
 def get_recommendation():
     data = request.get_json(force=True)
     count = data.get("count", 0)
-    score = data.get("score", 0)
     level = data.get("level", "Unknown")
+    weather = data.get("weather", None)
+
+    weather_str = ""
+    if weather:
+        temp = weather.get("temperature")
+        condition = weather.get("weatherCode")
+        weather_str = f", {round(temp)}F weather code {condition}"
 
     prompt = (
-        f"You are a transit advisor for Ohio State's CABS bus system. "
-        f"A bus stop currently has {count} people waiting. "
-        f"The crowd activity score is {score}/100 and the occupancy level is {level} "
-        f"(Light = low crowd, Moderate = moderate crowd, Heavy = very crowded). "
-        f"Respond with ONE concise sentence under 15 words advising a rider whether to board now or wait."
+        f"{count} people at stop, crowd={level}{weather_str}. "
+        f"3-4 words only: board or wait? No explanation."
     )
 
     try:
         resp = requests.post(
             OLLAMA_URL,
-            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "options": {"num_predict": 8, "temperature": 0}},
             timeout=15,
         )
         resp.raise_for_status()

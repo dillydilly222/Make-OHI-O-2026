@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useYoloFeed } from '../hooks/useYoloFeed';
 import { useRecommendation } from '../hooks/useRecommendation';
 import { SAMPLE_INTERVAL_MS } from '../constants';
-import { demandLevel } from '../utils';
+import { demandLevel, weatherCodeToText } from '../utils';
 
 function peopleToScore(count) {
   return Math.min(Math.round((count / 20) * 100), 100);
@@ -27,14 +27,14 @@ function actionText(hasData, loading, recommendation, level) {
   return recommendation ?? boardingTip(level);
 }
 
-export default function CameraPanel({ selectedRoute, addSample }) {
+export default function CameraPanel({ selectedRoute, addSample, weather }) {
   const peopleCount = useYoloFeed();
   const hasData = peopleCount !== null;
 
   const activityScore = hasData ? peopleToScore(peopleCount) : 0;
   const level = demandLevel(activityScore);
 
-  const { recommendation, loading } = useRecommendation(peopleCount, activityScore, level);
+  const { recommendation, loading } = useRecommendation(peopleCount, activityScore, level, weather);
 
   const scoreRef = useRef(activityScore);
   useEffect(() => { scoreRef.current = activityScore; }, [activityScore]);
@@ -73,6 +73,17 @@ export default function CameraPanel({ selectedRoute, addSample }) {
         <article className="metric">
           <p className="metric-label">Recommended Action</p>
           <p className="metric-value">{actionText(hasData, loading, recommendation, level)}</p>
+        </article>
+      </div>
+
+      <div className="metrics-row metrics-row--two">
+        <article className="metric">
+          <p className="metric-label">Temperature</p>
+          <p className="metric-value">{weather ? `${Math.round(weather.temperature)}°F` : '--'}</p>
+        </article>
+        <article className="metric">
+          <p className="metric-label">Condition</p>
+          <p className="metric-value">{weather ? weatherCodeToText(weather.weatherCode) : '--'}</p>
         </article>
       </div>
     </section>

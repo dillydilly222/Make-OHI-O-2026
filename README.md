@@ -33,10 +33,10 @@ Open `http://localhost:5173`
 
 ### Python backend
 ```bash
-pip install ultralytics flask flask-cors opencv-python
+pip requirements.txt
 python detect.py
 ```
-Make sure your ESP32-CAM is on the network at `192.168.4.1`.
+Make sure your ESP32-CAM is on the network at `192.168.137.122`.
 
 ## Notes
 - Camera permission is required for pixel-diff activity tracking.

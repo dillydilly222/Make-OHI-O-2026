@@ -171,7 +171,7 @@ export default function MapPanel({ routes }) {
         </div>
       </div>
 
-      <div ref={mapRef} className="route-map" aria-label="Map of CABS routes" />
+<div ref={mapRef} className="route-map" aria-label="Map of CABS routes" />
     </section>
   );
 }

@@ -3,8 +3,12 @@ export const SAMPLE_INTERVAL_MS = 60 * 1000;
 export const ANALYSIS_INTERVAL_MS = 2000;
 export const ROUTE_API_BASE = 'https://content.osu.edu/v2/bus/routes/';
 export const YOLO_SERVER = 'http://localhost:5050/people-count';
-export const YOLO_POLL_MS = 2000;
+export const YOLO_POLL_MS = 7000;
 export const VEHICLE_REFRESH_MS = 15000;
+export const WEATHER_REFRESH_MS = 15 * 60 * 1000;
+export const COLUMBUS_LAT = 39.9612;
+export const COLUMBUS_LON = -82.9988;
+export const WEATHER_URL = `https://api.open-meteo.com/v1/forecast?latitude=${39.9612}&longitude=${-82.9988}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
 
 export const INITIAL_ROUTES = [
   { code: 'BE', name: 'Buckeye Express', color: '#1f6feb' },

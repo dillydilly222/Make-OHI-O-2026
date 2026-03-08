@@ -1,4 +1,4 @@
-import { ROUTE_API_BASE } from './constants';
+import { ROUTE_API_BASE, WEATHER_URL } from './constants';
 
 export function clamp(v, min, max) {
   return Math.min(max, Math.max(min, v));
@@ -90,4 +90,30 @@ export async function fetchVehicles(code) {
     const data = payload?.data || payload;
     return Array.isArray(data?.vehicles) ? data.vehicles : Array.isArray(data) ? data : [];
   } catch { return []; }
+}
+
+export function weatherCodeToText(code) {
+  const map = {
+    0: 'Clear', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+    45: 'Fog', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle',
+    55: 'Dense drizzle', 61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+    71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+    80: 'Rain showers', 81: 'Heavy showers', 82: 'Violent showers',
+    95: 'Thunderstorm',
+  };
+  return map[code] || `Code ${code}`;
+}
+
+export async function fetchWeather() {
+  const res = await fetch(WEATHER_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const payload = await res.json();
+  const current = payload?.current;
+  if (!current) throw new Error('Missing current weather block');
+  return {
+    temperature: current.temperature_2m,
+    humidity: current.relative_humidity_2m,
+    weatherCode: current.weather_code,
+    windSpeed: current.wind_speed_10m,
+  };
 }

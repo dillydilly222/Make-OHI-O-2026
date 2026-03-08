@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { INITIAL_ROUTES } from './constants';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { INITIAL_ROUTES, WEATHER_REFRESH_MS } from './constants';
+import { fetchWeather } from './utils';
 import { useDemandHistory } from './hooks/useDemandHistory';
 import CameraPanel from './components/CameraPanel';
 import MapPanel from './components/MapPanel';
@@ -8,6 +9,20 @@ export default function App() {
   const [routes] = useState(INITIAL_ROUTES);
   const [selectedRoute] = useState('BE');
   const { addSample } = useDemandHistory();
+  const [weather, setWeather] = useState(null);
+  const weatherTimerRef = useRef(null);
+
+  const loadWeather = useCallback(async () => {
+    try {
+      setWeather(await fetchWeather());
+    } catch { /* silently ignore weather failures */ }
+  }, []);
+
+  useEffect(() => {
+    loadWeather();
+    weatherTimerRef.current = setInterval(loadWeather, WEATHER_REFRESH_MS);
+    return () => clearInterval(weatherTimerRef.current);
+  }, [loadWeather]);
 
   return (
     <>
@@ -22,6 +37,7 @@ export default function App() {
         <CameraPanel
           selectedRoute={selectedRoute}
           addSample={addSample}
+          weather={weather}
         />
         <MapPanel
           routes={routes}
